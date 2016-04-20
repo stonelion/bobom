@@ -39,6 +39,7 @@ public class HandshakePacket extends MysqlPacket {
     public int capabilityFlagsUpper;
     public byte[] authP2;
 
+
     public void write(ChannelHandlerContext ctx) {
         payload = ctx.alloc().buffer();
 

@@ -20,7 +20,7 @@ public class MysqlPacket {
         }
     }
 
-    void read(ByteBuf buf) {
+    void readPacketId(ByteBuf buf) {
         packetId = buf.readByte();
     }
 

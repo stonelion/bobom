@@ -49,8 +49,8 @@ public class HandshakeResponse41Packet extends MysqlPacket {
     String database;
     private byte[] authResponse;
 
-    public void read(ByteBuf buf) {
-        super.read(buf);
+    public HandshakeResponse41Packet read(ByteBuf buf) {
+        super.readPacketId(buf);
         capabilityFlags = buf.readIntLE();
         maxPacketSize = buf.readIntLE();
         characterSet = buf.readByte();
@@ -61,14 +61,17 @@ public class HandshakeResponse41Packet extends MysqlPacket {
         if ((capabilityFlags & Capabilities.CLIENT_CONNECT_WITH_DB.getValue()) != 0) {
             database = new String(readEndWithNull(buf));
         }
+
+        return this;
     }
 
     public byte[] getAuthResponse() {
         return authResponse;
     }
 
-    public void setAuthResponse(byte[] authResponse, byte[] seed) {
+    public HandshakeResponse41Packet setAuthResponse(byte[] authResponse, byte[] seed) {
         this.authResponse = scramble411(authResponse, seed);
+        return this;
     }
 
     public boolean isAuthResponseSame(byte[] nativeAuthResponse, byte[] encryptedAuthResponse, byte[] seed) {

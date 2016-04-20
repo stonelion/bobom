@@ -3,7 +3,7 @@ package bobom;
 import bobom.defines.Capabilities;
 import bobom.defines.Versions;
 import bobom.packages.HandshakePacket;
-import bobom.packages.HandshakeResponse41;
+import bobom.packages.HandshakeResponse41Packet;
 import com.google.common.primitives.Bytes;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -66,9 +66,7 @@ class HandshakeHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf message = (ByteBuf) msg;
-        HandshakeResponse41 response41 = new HandshakeResponse41();
-        response41.read(message);
+        HandshakeResponse41Packet response41 = new HandshakeResponse41Packet().read((ByteBuf) msg);
 
         if (response41.isAuthResponseSame("admin".getBytes(), response41.getAuthResponse(), seed)) {
             System.out.println("scuress");
