@@ -1,7 +1,9 @@
 package bobom.packages;
 
 import bobom.defines.Capabilities;
+import com.google.common.primitives.Bytes;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -41,13 +43,18 @@ import java.util.Arrays;
  * }
  * </pre>
  */
-public class HandshakeResponse41Packet extends MysqlPacket {
+public class HandshakeResponse41Packet extends MysqlPacket<HandshakeResponse41Packet> {
     int capabilityFlags;
     int maxPacketSize;
     byte characterSet;
     String username;
     String database;
     private byte[] authResponse;
+
+    @Override
+    public void write(ChannelHandlerContext ctx) {
+
+    }
 
     public HandshakeResponse41Packet read(ByteBuf buf) {
         super.readPacketId(buf);
@@ -62,6 +69,7 @@ public class HandshakeResponse41Packet extends MysqlPacket {
             database = new String(readEndWithNull(buf));
         }
 
+        buf.release();
         return this;
     }
 
@@ -74,32 +82,35 @@ public class HandshakeResponse41Packet extends MysqlPacket {
         return this;
     }
 
-    public boolean isAuthResponseSame(byte[] nativeAuthResponse, byte[] encryptedAuthResponse, byte[] seed) {
-        byte[] encrypted = scramble411(nativeAuthResponse, seed);
+    public boolean isAuthResponseSame(byte[] nativeAuthResponse, byte[] encryptedAuthResponse, byte[] salt) {
+        byte[] encrypted = scramble411(nativeAuthResponse, salt);
         return Arrays.equals(encrypted, encryptedAuthResponse);
     }
 
     /**
-     * encrypt native password and check encrypted password send from client.
+     * encrypt native password.
      */
-    private byte[] scramble411(byte[] nativePass, byte[] seed) {
+    private byte[] scramble411(byte[] nativePass, byte[] salt) {
+        MessageDigest sha;
         try {
-            MessageDigest md = MessageDigest.getInstance("SHA-1");
-            byte[] pass1 = md.digest(nativePass);
-            md.reset();
-            byte[] pass2 = md.digest(pass1);
-            md.reset();
-            md.update(seed);
-            byte[] pass3 = md.digest(pass2);
-            for (int i = 0; i < pass3.length; i++) {
-                pass3[i] = (byte) (pass3[i] ^ pass1[i]);
-            }
-            return pass3;
+            sha = MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException e) {
-            //Ignore
+            throw new RuntimeException(e);
         }
 
-        return EMPTY_BYTES;
+        byte[] passwordHash = sha.digest(nativePass);
+        return Bytes.concat(salt,sha.digest(passwordHash));
     }
+
+
+    private static byte[] xor(byte[] a, byte[] b) {
+        byte[] r = new byte[a.length];
+        for (int i = 0; i < r.length; i++) {
+            r[i] = (byte) (a[i] ^ b[i]);
+        }
+        return r;
+    }
+
+
 
 }

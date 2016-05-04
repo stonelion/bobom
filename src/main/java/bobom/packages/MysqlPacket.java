@@ -1,14 +1,19 @@
 package bobom.packages;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
 
-public class MysqlPacket {
-    static final byte[] EMPTY_BYTES = {};
+public abstract class MysqlPacket<T> {
+    private static final byte[] EMPTY_BYTES = {};
     private static final long NULL_LENGTH = -1;
     private static final byte NULL = (byte) 0;
-    
+
     public byte packetId;
     public ByteBuf payload;
+
+    public abstract T read(ByteBuf buf);
+
+    public abstract void write(ChannelHandlerContext ctx);
 
     void writeNull() {
         payload.writeByte(0);
@@ -22,6 +27,18 @@ public class MysqlPacket {
 
     void readPacketId(ByteBuf buf) {
         packetId = buf.readByte();
+    }
+
+    byte[] readThroughEOF(ByteBuf buf) {
+        if (!buf.isReadable()) {
+            return EMPTY_BYTES;
+        }
+
+        byte[] bytes = new byte[buf.readableBytes()];
+        buf.readBytes(bytes);
+        buf.release();
+
+        return bytes;
     }
 
     byte[] readEndWithNull(ByteBuf buf) {
@@ -40,6 +57,9 @@ public class MysqlPacket {
         return bytes;
     }
 
+    /**
+     * read bytes based on prefix length
+     */
     byte[] readWithLength(ByteBuf buf) {
         int length = (int) readLengthEncoded(buf);
 
@@ -56,7 +76,10 @@ public class MysqlPacket {
         return bytes;
     }
 
-    private long readLengthEncoded(ByteBuf buf) {
+    /**
+     * read long based on lenenc length
+     */
+    long readLengthEncoded(ByteBuf buf) {
         int length = buf.readByte();
         switch (length) {
         case 0xfb:

@@ -1,5 +1,6 @@
 package bobom.packages;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
 /**
@@ -27,7 +28,7 @@ import io.netty.channel.ChannelHandlerContext;
  *      }
  * </pre>
  */
-public class HandshakePacket extends MysqlPacket {
+public class HandshakePacket extends MysqlPacket<HandshakePacket> {
 
     public byte protocolVersion;
     public byte[] serverVersion;
@@ -39,6 +40,11 @@ public class HandshakePacket extends MysqlPacket {
     public int capabilityFlagsUpper;
     public byte[] authP2;
 
+    @Override
+    public HandshakePacket read(ByteBuf buf) {
+        buf.release();
+        return this;
+    }
 
     public void write(ChannelHandlerContext ctx) {
         payload = ctx.alloc().buffer();
