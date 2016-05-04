@@ -1,7 +1,54 @@
 package bobom.packages;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+
 /**
- * Created by lion on 16/4/12.
+ * <pre>
+ * int<1>	header	[00] or [fe] the OK packet header
+ * int<lenenc>	affected_rows	affected rows
+ * int<lenenc>	last_insert_id	last insert-id
+ * if capabilities & CLIENT_PROTOCOL_41 {
+ *  int<2>	status_flags	Status Flags
+ *  int<2>	warnings	number of warnings
+ * } elseif capabilities & CLIENT_TRANSACTIONS {
+ *  int<2>	status_flags	Status Flags
+ * }
+ * if capabilities & CLIENT_SESSION_TRACK {
+ *  string<lenenc>	info	human readable status information
+ * if status_flags & SERVER_SESSION_STATE_CHANGED {
+ *  string<lenenc>	session_state_changes	session state info
+ * }
+ * } else {
+ * string<EOF>	info	human readable status information
+ * }
+ *
+ * </pre>
  */
-public class OKPacket {
+public class OKPacket extends MysqlPacket<OKPacket> {
+    public byte header;
+    public long affected_rows;
+    public long last_insert_id;
+    public int status_flags;
+    public int warnings;
+    public String info;
+
+    @Override
+    public OKPacket read(ByteBuf buf) {
+        super.readPacketId(buf);
+        header = buf.readByte();
+        affected_rows = super.readLengthEncoded(buf);
+        last_insert_id = super.readLengthEncoded(buf);
+        status_flags = buf.readShortLE();
+        warnings = buf.readShortLE();
+        info = new String(super.readThroughEOF(buf));
+
+        return this;
+    }
+
+    @Override
+    public void write(ChannelHandlerContext ctx) {
+        ByteBuf buf = ctx.alloc().buffer();
+
+    }
 }
